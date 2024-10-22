@@ -3,24 +3,24 @@
 # docker-compose v1.27+ required
 
 services:
-  vote:
-    build: 
+  vote: # service 名稱，自己定義名稱
+    build: # 使用特定路徑下的 Dockerfile 來建立 image
       context: ./vote
-      target: dev
-    depends_on:
+      target: dev # 使用 Dockerfile 中的特定 stage 來建立 image
+    depends_on: # 在啟動此 service 之前，需要先啟動的 service
       redis:
-        condition: service_healthy
-    healthcheck: 
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+        condition: service_healthy # 當 redis service 的健康狀態為 healthy 時，才會啟動 vote service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"] # curl 自己，檢查程式是否沒掛掉
+      interval: 15s # 多久測一次
+      timeout: 5s # 超時時間
+      retries: 3 # 重試次數
+      start_period: 10s # 如果
     volumes:
-     - ./vote:/usr/local/app
+     - ./vote:/usr/local/app # 將本地目錄掛載到 container 內，這是執行的程式碼
     ports:
-      - "8080:80"
-    networks:
+      - "8080:80" # 將 container 內的 80 port 對應到本地的 8080 port
+    networks: # 將 service 加入到特定的 network 中
       - front-tier
       - back-tier
 
@@ -30,9 +30,9 @@ services:
     entrypoint: nodemon --inspect=0.0.0.0 server.js
     depends_on:
       db:
-        condition: service_healthy 
+        condition: service_healthy # 當 db service 的健康狀態為 healthy 時，才會啟動 result service
     volumes:
-      - ./result:/usr/local/app
+      - ./result:/usr/local/app # 將本地目錄掛載到 container 內，這是執行的程式碼
     ports:
       - "8081:80"
       - "127.0.0.1:9229:9229"
@@ -42,12 +42,12 @@ services:
 
   worker:
     build:
-      context: ./worker
+      context: ./worker # 等同於直接寫 build: ./worker
     depends_on:
       redis:
-        condition: service_healthy 
+        condition: service_healthy
       db:
-        condition: service_healthy 
+        condition: service_healthy
     networks:
       - back-tier
 
@@ -63,14 +63,14 @@ services:
 
   db:
     image: postgres:15-alpine
-    environment:
+    environment: # 環境變數
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
     volumes:
       - "db-data:/var/lib/postgresql/data"
-      - "./healthchecks:/healthchecks"
-    healthcheck:
-      test: /healthchecks/postgres.sh
+      - "./healthchecks:/healthchecks" # 將本地目錄掛載到 container 內，這裡面包含了健康檢查的腳本
+    healthcheck: # 每隔五秒檢查一次是否正常執行
+      test: /healthchecks/postgres.sh # 執行甚麼指令來健康檢查
       interval: "5s"
     networks:
       - back-tier
@@ -83,10 +83,10 @@ services:
     profiles: ["seed"]
     depends_on:
       vote:
-        condition: service_healthy 
+        condition: service_healthy
     networks:
       - front-tier
-    restart: "no"
+    restart: "no" # 不重新啟動此服務
 
 volumes:
   db-data:
